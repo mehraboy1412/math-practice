@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Math Practice: Multiplication, Squares & Cubes</title>
+  <style>
+    :root {
+      --primary: #4CAF50;
+      --secondary: #00f2fe;
+      --text-light: #fff;
+      --text-dark: #333;
+      --bg-light: #f8f8f8;
+      --bg-dark: #222;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #4facfe, var(--secondary));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 2rem 1rem;
+      transition: background 0.3s ease;
+    }
+    h1 {
+      color: var(--text-light);
+      margin-bottom: 1.5rem;
+      font-size: 3rem;
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+    }
+    .container {
+      background-color: white;
+      padding: 2.5rem;
+      border-radius: 25px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+      max-width: 520px;
+      width: 100%;
+      position: relative;
+    }
+    .mode-selector, .range-selector {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 1.2rem;
+    }
+    .mode-selector label, .range-selector label {
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 1rem;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+    input[type="number"], select {
+      padding: 0.65rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      background-color: var(--bg-light);
+    }
+    select[multiple] {
+      height: 120px;
+    }
+    #question-label {
+      font-size: 1.3rem;
+      margin-top: 1.5rem;
+      font-weight: bold;
+      color: var(--text-dark);
+    }
+    #answer {
+      margin-top: 0.6rem;
+    }
+    #result {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    #score, #timer, #session-timer {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: #444;
+    }
+    button {
+      margin-top: 1.2rem;
+      padding: 0.7rem 1.4rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      background-color: var(--primary);
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    button:hover {
+      background-color: #3e8e41;
+      transform: scale(1.05);
+    }
+    .toggle-darkmode {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #333;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #answer {
+      font-size: 1.2rem;
+      padding: 0.5rem;
+    }
+    #progress-bar {
+      margin-top: 1rem;
+      width: 100%;
+      height: 10px;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #progress {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <h1>Math Practice</h1>
+  <div class="container">
+    <div class="toggle-darkmode" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</div>
+    <div id="app-content">
+      <div class="form-group">
+        <label>Choose Mode:</label>
+        <select id="mode">
+          <option value="multiplication">Multiplication</option>
+          <option value="square">Square</option>
+          <option value="cube">Cube</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Select Tables/Numbers:</label>
+        <select id="tables" multiple></select>
+      </div>
+      <div class="form-group">
+        <label>Choose Range (1 to N):</label>
+        <input type="number" id="range" value="10" min="1" max="50" />
+      </div>
+      <div class="form-group">
+        <label>Practice Time (minutes):</label>
+        <input type="number" id="practice-time" value="5" min="1" max="60" />
+      </div>
+      <button onclick="startPractice()">Start Practice</button>
+      <div id="session-timer"></div>
+      <div id="question-label"></div>
+      <input type="number" id="answer" placeholder="Your answer" oninput="checkAnswer(event)" />
+      <div id="result"></div>
+      <div id="score"></div>
+    </div>
+    <div id="progress-bar">
+      <div id="progress"></div>
+    </div>
+  </div>
+
+  <audio id="sound-correct" src="https://www.soundjay.com/buttons/sounds/button-4.mp3" preload="auto"></audio>
+  <audio id="sound-wrong" src="https://www.soundjay.com/buttons/sounds/button-10.mp3" preload="auto"></audio>
+
+  <script>
+    let darkMode = false;
+    let mode = "multiplication";
+    let tables = [];
+    let maxRange = 10;
+    let score = 0;
+    let total = 0;
+    let currentQuestion = {};
+    let timer;
+    let practiceSeconds;
+
+    function toggleDarkMode() {
+      darkMode = !darkMode;
+      document.body.style.background = darkMode ? '#121212' : 'linear-gradient(to right, #4facfe, #00f2fe)';
+      document.querySelector('.container').style.backgroundColor = darkMode ? '#1e1e1e' : 'white';
+      document.querySelectorAll('label, #question-label, #score, #timer, #session-timer').forEach(el => {
+        el.style.color = darkMode ? '#eee' : '#333';
+      });
+    }
+
+    function playSound(isCorrect) {
+      const audio = document.getElementById(isCorrect ? 'sound-correct' : 'sound-wrong');
+      audio.currentTime = 0;
+      audio.play();
+    }
+
+    function updateProgressBar(current, total) {
+      const percentage = Math.min(100, Math.round((current / total) * 100));
+      document.getElementById('progress').style.width = percentage + '%';
+    }
+
+    function populateTables() {
+      const select = document.getElementById('tables');
+      select.innerHTML = '';
+      for (let i = 1; i <= 50; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i;
+        select.appendChild(opt);
+      }
+    }
+
+    function startPractice() {
+      mode = document.getElementById('mode').value;
+      tables = Array.from(document.getElementById('tables').selectedOptions).map(opt => parseInt(opt.value));
+      if (tables.length === 0) {
+        alert("Please select at least one table/number to practice.");
+        return;
+      }
+      maxRange = parseInt(document.getElementById('range').value);
+      practiceSeconds = parseInt(document.getElementById('practice-time').value) * 60;
+      score = 0;
+      total = 0;
+      nextQuestion();
+      updateTimer();
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => {
+        practiceSeconds--;
+        updateTimer();
+        if (practiceSeconds <= 0) {
+          clearInterval(timer);
+          alert(`Time's up! Your score is ${score}/${total}`);
+        }
+      }, 1000);
+    }
+
+    function updateTimer() {
+      const minutes = Math.floor(practiceSeconds / 60);
+      const seconds = practiceSeconds % 60;
+      document.getElementById('session-timer').textContent = `⏱ Time Left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function nextQuestion() {
+      const a = tables[Math.floor(Math.random() * tables.length)];
+      const b = Math.floor(Math.random() * maxRange) + 1;
+      let questionText = "";
+      let answer;
+      if (mode === 'multiplication') {
+        questionText = `${a} × ${b}`;
+        answer = a * b;
+      } else if (mode === 'square') {
+        questionText = `${a}²`;
+        answer = a * a;
+      } else {
+        questionText = `${a}³`;
+        answer = a * a * a;
+      }
+      currentQuestion = { answer };
+      document.getElementById('question-label').textContent = questionText;
+      document.getElementById('answer').value = '';
+    }
+
+    function checkAnswer(e) {
+      const input = parseInt(e.target.value);
+      if (input === currentQuestion.answer) {
+        score++;
+        playSound(true);
+        total++;
+        updateProgressBar(score, total);
+        nextQuestion();
+      } else if (!isNaN(input)) {
+        playSound(false);
+        total++;
+        updateProgressBar(score, total);
+      }
+      document.getElementById('score').textContent = `✅ Score: ${score}/${total}`;
+    }
+
+    window.onload = populateTables;
+  </script>
+</body>
+</html>
